@@ -28,18 +28,6 @@ const int bY = 11;
 
 int buttonMapping[NUM_BUTTONS];
 void setupButtonMapping() {
-  buttonMapping[0] = -1;
-  buttonMapping[1] = -1;
-  buttonMapping[stick1] = 65;
-  buttonMapping[stick2] = 66;
-  buttonMapping[pad1] = 67;
-  buttonMapping[pad2] = 68;
-  buttonMapping[pad3] = 69;
-  buttonMapping[pad4] = 70;
-  buttonMapping[bA] = 71;
-  buttonMapping[bB] = 72;
-  buttonMapping[bX] = 73;
-  buttonMapping[bY] = 74; 
 }
 
 int stickToKeyMapping[4] = {
@@ -49,12 +37,45 @@ int stickToKeyMapping[4] = {
   218
 };
 
+class KeyMapper {
+public:
+	KeyMapper() {
+		mButtonMapping[0] = -1;
+		mButtonMapping[1] = -1;
+		mButtonMapping[stick1] = 65;
+		mButtonMapping[stick2] = 66;
+		mButtonMapping[pad1] = 67;
+		mButtonMapping[pad2] = 68;
+		mButtonMapping[pad3] = 69;
+		mButtonMapping[pad4] = 70;
+		mButtonMapping[bA] = 71;
+		mButtonMapping[bB] = 72;
+		mButtonMapping[bX] = 73;
+		mButtonMapping[bY] = 74; 
+	}
+	
+	void update() {
+	  for(int i = 0; i < NUM_BUTTONS; i++) {
+		int key = mButtonMapping[i];
+		if(key == -1) continue;
+		int pinValue = digitalRead(i);
+		if(pinValue == HIGH) {
+		  //Keyboard.press(key);
+		  Serial.write(key);
+		}
+	  }
+	}
+	
+private:
+	int mButtonMapping[NUM_BUTTONS];
+};
+
 class AnalogStick {
 public:
   AnalogStick() {
     mXPin = 0;
     mYPin = 0;
-    mDeadZone = 0.05f;
+    mDeadZone = 0.16f;
   }
   
   int xPin() const {
@@ -123,7 +144,7 @@ public:
     x *= mXSpeed;
     y *= mYSpeed;
     if(x != 0 || y != 0) {
-      //Mouse.move(x, y, 0);
+      Mouse.move(x, y, 0);
       Serial.print("X: ");
       Serial.print(x);
       Serial.print(", Y: ");
@@ -171,19 +192,19 @@ public:
     getNormalizedValues(&x, &y);
     if(x > 0) {
       Serial.write(mRightKey);
-      //Keyboard.press(mRightKey);
+      Keyboard.press(mRightKey);
     }
     else if(x < 0) {
       Serial.write(mLeftKey);
-      //Keyboard.press(mLeftKey);
+      Keyboard.press(mLeftKey);
     }
     if(y > 0) {
       Serial.write(mUpKey);
-      //Keyboard.press(mUpKey);
+      Keyboard.press(mUpKey);
     }
     else if(y < 0) {
       Serial.write(mDownKey);
-      //Keyboard.press(mDownKey);
+      Keyboard.press(mDownKey);
     }
   }
   
@@ -200,12 +221,15 @@ void setupPin(const int pinNum) {
 	digitalWrite(pinNum, HIGH);
 }
 
+KeyMapper *keyMapper;
 MouseStick *mouseStick;
 KeysStick *keysStick;
 
 void setup()
 {
   setupButtonMapping();
+  
+  keyMapper = new KeyMapper();
   
   mouseStick = new MouseStick();
   mouseStick->setXPin(x1_pin);
@@ -216,10 +240,11 @@ void setup()
   keysStick = new KeysStick();
   keysStick->setXPin(x2_pin);
   keysStick->setYPin(y2_pin);
+  keysStick->setDeadZone(0.25f);
   
   Serial.begin(9600);
-  //Keyboard.begin();
-  //Mouse.begin();
+  Keyboard.begin();
+  Mouse.begin();
   
   setupPin(stick1);
   setupPin(stick2);
@@ -236,21 +261,13 @@ void setup()
 }
 
 void loop()
-{
-  for(int i = 0; i < NUM_BUTTONS; i++) {
-    int key = buttonMapping[i];
-    if(key == -1) continue;
-    int pinValue = digitalRead(i);
-    if(pinValue == HIGH) {
-      //Keyboard.press(key);
-      Serial.write(key);
-    }
-  }
-  
+{ 
+  keyMapper->update();
   mouseStick->update();
   keysStick->update();
   
   Serial.print("\n");
-  delay (100);
+  Keyboard.releaseAll();
+  delay (10);
 }
 
