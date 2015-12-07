@@ -27,8 +27,6 @@ const int bX = 10;
 const int bY = 11;
 
 int buttonMapping[NUM_BUTTONS];
-void setupButtonMapping() {
-}
 
 int stickToKeyMapping[4] = {
   215,
@@ -60,7 +58,7 @@ public:
 		if(key == -1) continue;
 		int pinValue = digitalRead(i);
 		if(pinValue == HIGH) {
-		  //Keyboard.press(key);
+		  Keyboard.press(key);
 		  Serial.write(key);
 		}
 	  }
@@ -75,6 +73,8 @@ public:
   AnalogStick() {
     mXPin = 0;
     mYPin = 0;
+    mInvertX = false;
+    mInvertY = false;
     mDeadZone = 0.16f;
   }
   
@@ -92,6 +92,20 @@ public:
     mYPin = yPin;
   }
   
+  bool invertX() const {
+  	return mInvertX;
+  }
+  void setInvertX(bool value) {
+  	mInvertX = value;
+  }
+  
+  bool invertY() const {
+  	return mInvertY;
+  }
+  void setInvertY(bool value) {
+  	mInvertY = value;
+  }
+  
   float deadZone() const {
     return mDeadZone;
   }
@@ -104,8 +118,15 @@ public:
   	int yAnal = analogRead(mYPin);
     float x = xAnal / 1023.0f * 2 - 1;
     x = x < mDeadZone && x > -mDeadZone ? 0.0f : x;
+    
     float y = yAnal / 1023.0f * 2 - 1;
     y = y < mDeadZone && y > -mDeadZone ? 0.0f : y;
+    
+    if(mInvertX) 
+    	x = -x;
+    if(mInvertY)
+    	y = -y;
+    
     *xOutput = x;
     *yOutput = y;
   }
@@ -113,6 +134,9 @@ public:
 private:
   int mXPin;
   int mYPin;
+  
+  bool mInvertX;
+  bool mInvertY;
   
   float mDeadZone;
 };
@@ -227,8 +251,6 @@ KeysStick *keysStick;
 
 void setup()
 {
-  setupButtonMapping();
-  
   keyMapper = new KeyMapper();
   
   mouseStick = new MouseStick();
@@ -270,4 +292,3 @@ void loop()
   Keyboard.releaseAll();
   delay (10);
 }
-
